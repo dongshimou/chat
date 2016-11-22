@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Chat</title>
+    <meta charset="utf-8">
+    <script src="http://libs.baidu.com/jquery/2.0.0/jquery.min.js"></script>
+    <script src="js/socket.io-1.4.5.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <script src="js/bootstrap.min.js"></script>
+    <!-- <script src="js/md5.js"></script> -->
+    <link rel="stylesheet" type="text/css" href="css/ios-chat.css">
+</head>
+<style type="text/css">
+html,
+body {
+    height: 100%;
+}
+
+.message {
+    margin: 10px 20px;
+    word-wrap: break-word;
+    word-break: break-all;
+}
+.left-name{
+	margin: 0px;
+	padding: 0px;
+	padding-left: 20px;
+	float: left;
+}
+.right-name{
+	margin: 0px;
+	padding: 0px;
+	padding-right: 20px;
+	float: right;
+}
+</style>
+
+<body onload="init()">
+    <!-- 菜单弹出 -->
+    <div class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog" aria-labelledby="ModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                    <h5 id="ModalLabel" class="modal-title"> Set Name </h5>
+                </div>
+                <div class="modal-body text-center">
+                    <input type="text" id="name" class="form-control" onkeyup="this.value=this.value.replace(/[^\w\d]/g,'')">
+                    <button type="" class="btn btn-success" style="margin-top: 15px;" id="signin">Sign in</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 菜单弹出 -->
+    <div class="container " id="menu">
+        <!-- class="navbar navbar-fixed-top" -->
+        <div style="margin:auto 0; text-align: center;">
+            <div class="btn-group">
+                <button type="button" class="btn btn-primary" data-toggle="modal" data-target=".bs-example-modal-sm">Log In</button>
+                <button class="btn btn-danger" id="logout">Log Out</button>
+                <button class="btn btn-primary" id="alluser">AllUser</button>
+                <button class="btn btn-info" id="clean">Clean</button>
+            </div>
+        </div>
+    </div>
+    <div class="container " id="chat" data-spy="scroll" style="overflow: auto;overflow-x:hidden; position: relative;">
+    </div>
+    <div id="user" class="container ">
+        <!-- navbar-fixed-bottom -->
+        <textarea id="input" placeholder="Crtl+Enter(send)" class="form-control" rows="3"></textarea>
+        <div class="text-center" style="margin-top: 10px;">
+            <button id="button" class="btn btn-success">send</button>
+        </div>
+    </div>
+</body>
+<script type="text/javascript">
+var username = "";
+var mysocket = null;
+var islogin = false;
+var users = {};
+var online = 0;
+
+function initSocket() {
+
+    recvMessageFromServer();
+    recvNewsFromServer();
+
+    mysocket.on('connect', function() {
+
+
+    });
+    mysocket.on('disconnect', function() {
+        islogin = false;
+        users = {};
+        online = 0;
+    });
+    mysocket.on('reject', function(message) {
+        warningSay(message);
+        userLogOut();
+    });
+    mysocket.on('login', function(data) {
+
+        if (username == data.NewUser)
+            islogin = true;
+        users = data.Users;
+        online = data.Online;
+        addUser(data.NewUser);
+    });
+
+    mysocket.on('logout', function(name) {
+        console.log("logout & delete", name);
+        delete users[name];
+        online--;
+        delUser(name);
+    });
+}
+
+function userLogIn() {
+    mysocket = io('ws://45.78.28.230:2333');
+    mysocket.connect();
+    initYourName(username);
+    console.log("login");
+}
+
+function userLogOut() {
+    mysocket.disconnect();
+    console.log("logout");
+}
+
+function initYourName(name) {
+    var data = {
+        username: name
+    }
+    mysocket.emit('login', data);
+}
+
+function recvMessageFromServer() {
+    mysocket.on('message', function(data) {
+        console.log(data.username, ' : ', data.message);
+        if (data.username != username)
+            otherSay(data);
+    });
+}
+
+function recvNewsFromServer() {
+    mysocket.on('news', function(message) {
+        console.log("news : ", message);
+        warningSay(message);
+    });
+}
+
+function sendMessageToServer(message) {
+
+    if (islogin) {
+        var data = {
+            username: username,
+            message: message
+        };
+        mysocket.send(data);
+        iSay(data);
+        $("#input").val('');
+    } else {
+        warningSay("please login first!");
+    }
+
+}
+
+function addUser(name) {
+    systemSay("[" + name + "]" + " join the Chat ");
+}
+
+function delUser(name) {
+    systemSay("[" + name + "]" + " leave the Chat ");
+}
+
+function systemSay(message) {
+    var newrow = '<div class="row text-center"><h6>' + message + '</h6></div>';
+    $("#chat").append(newrow);
+    fixScroll();
+}
+
+function warningSay(message) {
+    var newrow = '<div class="row"><h4 class="bubble--warning pull-left message">' + message + '</h4></div>';
+    $("#chat").append(newrow);
+    fixScroll();
+}
+
+function otherSay(data) {
+    var newrow = '<div class="row"><div class="row"><h4 class="bubble message">' + data.message + '</h4></div><div class="row"><h5 class="left-name">'+data.username+'</h5></div></div>';
+    $("#chat").append(newrow);
+    fixScroll();
+}
+
+function iSay(data) {
+    var newrow = '<div class="row"><div class="row"><h4 class="bubble bubble--alt message">' + data.message + '</h4></div><div class="row"><h5 class="right-name">'+data.username+'</h5></div></div>';
+    $("#chat").append(newrow);
+    fixScroll();
+}
+
+function fixScroll() {
+    $("#chat").scrollTop(document.getElementById('chat').scrollHeight);
+}
+
+function signAlert(message) {
+    var newrow = '<h4 class="text-danger">' + message + '</h4>';
+    $(".modal-body").append(newrow);
+    setTimeout(function() {
+        $(".modal-body h4 ").hide('500', function() {
+            $(this).remove();
+            flag = false;
+        });
+    }, 3000);
+}
+
+function signClose() {
+    $(".modal-header button").click();
+}
+
+function setChatBox() {
+    var vheight = $(window).height();
+    var menuh = $("#menu").outerHeight();
+    var userh = $("#user").outerHeight();
+    $("#chat").height(vheight - menuh - userh - 20);
+}
+
+function init() {
+
+    $(document).ready(function() {
+
+        setChatBox();
+        $(document).keypress(function(event) {
+            if (event.ctrlKey && event.which == 13)
+                $("#button").click();
+        });
+        $("#clean").click(function(event) {
+            $("#chat").empty();
+        });
+        $("#alluser").click(function(event) {
+            if (!islogin) return;
+            systemSay("Online User Count =" + online + " :");
+            var str = "";
+            for (user in users)
+                str += "[" + user + "],";
+            systemSay(str);
+        });
+        $("#button").click(function(event) {
+
+            var message = $.trim($("#input").val());
+            message = message.replace(/[<>]/g, '');
+            console.log(message);
+            if (message != '')
+                sendMessageToServer(message);
+            else
+                warningSay("message is empty!");
+        });
+
+        $("#logout").click(function(event) {
+
+            if (islogin) {
+                userLogOut();
+                islogin = false;
+            }
+        });
+
+        $("#signin").click(function(event) {
+
+            $(this).attr('data-loading-text', 'Signing');
+            var btn = $(this).button('loading');
+            if (islogin) {
+                userLogOut();
+                islogin = false;
+            }
+            username = $.trim($("#name").val());
+
+            if (username == '') {
+                signAlert("name is empty!");
+                setTimeout(function() {
+                    btn.button('reset');
+                }, 1000);
+            }
+            else if(username.length>20){
+            	signAlert("name is too long!");
+            	setTimeout(function(){
+            		btn.button('reset');
+            	},1000);
+            } 
+            else {
+                btn.button('reset');
+                signClose();
+                userLogIn();
+                initSocket();
+            }
+        });
+    });
+}
+</script>
+
+</html>
