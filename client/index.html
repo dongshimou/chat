@@ -4,7 +4,7 @@
 <head>
     <title>Chat</title>
     <meta charset="utf-8">
-    <script src="http://libs.baidu.com/jquery/2.0.0/jquery.min.js"></script>
+    <script src="js/jquery.min.js"></script>
     <script src="js/socket.io-1.4.5.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <link href="css/bootstrap.min.css" rel="stylesheet">
@@ -23,23 +23,25 @@ body {
     word-wrap: break-word;
     word-break: break-all;
 }
-.left-name{
-	margin: 0px;
-	padding: 0px;
-	padding-left: 20px;
-	float: left;
+
+.left-name {
+    margin: 0px;
+    padding: 0px;
+    padding-left: 20px;
+    float: left;
 }
-.right-name{
-	margin: 0px;
-	padding: 0px;
-	padding-right: 20px;
-	float: right;
+
+.right-name {
+    margin: 0px;
+    padding: 0px;
+    padding-right: 20px;
+    float: right;
 }
 </style>
 
 <body onload="init()">
     <!-- 菜单弹出 -->
-    <div class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog" aria-labelledby="ModalLabel" aria-hidden="true">
+    <div class="modal fade" id="signinModel" tabindex="-1" role="dialog" aria-labelledby="ModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-sm">
             <div class="modal-content">
                 <div class="modal-header">
@@ -53,14 +55,29 @@ body {
             </div>
         </div>
     </div>
+    <div class="modal fade" id="pchatModel" tabindex="-1" role="dialog" aria-labelledby="PrivateLabel" aria-hidden="true">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                    <h5 id="PrivateLabel" class="modal-title"> Private </h5>
+                </div>
+                <div class="modal-body text-center">
+                    <input type="text" id="othername" class="form-control" onkeyup="this.value=this.value.replace(/[^\w\d]/g,'')">
+                    <button type="" class="btn btn-success" style="margin-top: 15px;" id="setchat">Set Chat</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- 菜单弹出 -->
     <div class="container " id="menu">
         <!-- class="navbar navbar-fixed-top" -->
         <div style="margin:auto 0; text-align: center;">
-            <div class="btn-group">
-                <button type="button" class="btn btn-primary" data-toggle="modal" data-target=".bs-example-modal-sm">Log In</button>
+            <div class="nav nav-pills">
+                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#signinModel">Log In</button>
                 <button class="btn btn-danger" id="logout">Log Out</button>
                 <button class="btn btn-primary" id="alluser">AllUser</button>
+                <button type="button" class="btn btn-info" data-toggle="modal" data-target="#pchatModel">Private</button>
                 <button class="btn btn-info" id="clean">Clean</button>
             </div>
         </div>
@@ -71,7 +88,7 @@ body {
         <!-- navbar-fixed-bottom -->
         <textarea id="input" placeholder="Crtl+Enter(send)" class="form-control" rows="3"></textarea>
         <div class="text-center" style="margin-top: 10px;">
-            <button id="button" class="btn btn-success">send</button>
+            <button id="send" class="btn btn-success">send</button>
         </div>
     </div>
 </body>
@@ -79,13 +96,13 @@ body {
 var username = "";
 var mysocket = null;
 var islogin = false;
+var ispchat = false;
 var users = {};
 var online = 0;
+var othername = "";
 
 function initSocket() {
 
-    recvMessageFromServer();
-    recvNewsFromServer();
 
     mysocket.on('connect', function() {
 
@@ -108,7 +125,18 @@ function initSocket() {
         online = data.Online;
         addUser(data.NewUser);
     });
-
+    mysocket.on('message', function(data) {
+        console.log(data.username, ' : ', data.message);
+        if (data.username != username)
+            otherSay(data);
+    });
+    mysocket.on('news', function(message) {
+        console.log("news : ", message);
+        warningSay(message);
+    });
+    mysocket.on('private', function(data) {
+        fromPrivateSay(data);
+    });
     mysocket.on('logout', function(name) {
         console.log("logout & delete", name);
         delete users[name];
@@ -118,7 +146,7 @@ function initSocket() {
 }
 
 function userLogIn() {
-    mysocket = io('ws://45.78.28.230:2333');
+    mysocket = io('ws://127.0.0.1:2333');
     mysocket.connect();
     initYourName(username);
     console.log("login");
@@ -136,21 +164,6 @@ function initYourName(name) {
     mysocket.emit('login', data);
 }
 
-function recvMessageFromServer() {
-    mysocket.on('message', function(data) {
-        console.log(data.username, ' : ', data.message);
-        if (data.username != username)
-            otherSay(data);
-    });
-}
-
-function recvNewsFromServer() {
-    mysocket.on('news', function(message) {
-        console.log("news : ", message);
-        warningSay(message);
-    });
-}
-
 function sendMessageToServer(message) {
 
     if (islogin) {
@@ -164,7 +177,21 @@ function sendMessageToServer(message) {
     } else {
         warningSay("please login first!");
     }
+}
 
+function sendMessageToPrivate(message) {
+    if (islogin) {
+        var data = {
+            origin: username,
+            target: othername,
+            message: message
+        };
+        mysocket.emit('private', data);
+        privateSayTo(data);
+        $("#input").val('');
+    } else {
+        warningSay("please login first!");
+    }
 }
 
 function addUser(name) {
@@ -188,13 +215,25 @@ function warningSay(message) {
 }
 
 function otherSay(data) {
-    var newrow = '<div class="row"><div class="row"><h4 class="bubble message">' + data.message + '</h4></div><div class="row"><h5 class="left-name">'+data.username+'</h5></div></div>';
+    var newrow = '<div class="row"><div class="row"><h4 class="bubble message">' + data.message + '</h4></div><div class="row"><h5 class="left-name">' + data.username + '</h5></div></div>';
     $("#chat").append(newrow);
     fixScroll();
 }
 
 function iSay(data) {
-    var newrow = '<div class="row"><div class="row"><h4 class="bubble bubble--alt message">' + data.message + '</h4></div><div class="row"><h5 class="right-name">'+data.username+'</h5></div></div>';
+    var newrow = '<div class="row"><div class="row"><h4 class="bubble bubble--alt message">' + data.message + '</h4></div><div class="row"><h5 class="right-name">' + data.username + '</h5></div></div>';
+    $("#chat").append(newrow);
+    fixScroll();
+}
+
+function privateSayTo(data) {
+    var newrow = '<div class="row"><div class="row"><h4 class="bubble bubble--alt message">' + data.message + '</h4></div><div class="row"><h5 class="right-name">' + 'i say to ' + data.target + '</h5></div></div>';
+    $("#chat").append(newrow);
+    fixScroll();
+}
+
+function fromPrivateSay(data) {
+    var newrow = '<div class="row"><div class="row"><h4 class="bubble message">' + data.message + '</h4></div><div class="row"><h5 class="left-name">' + data.origin + ' say to you' + '</h5></div></div>';
     $("#chat").append(newrow);
     fixScroll();
 }
@@ -232,7 +271,7 @@ function init() {
         setChatBox();
         $(document).keypress(function(event) {
             if (event.ctrlKey && event.which == 13)
-                $("#button").click();
+                $("#send").click();
         });
         $("#clean").click(function(event) {
             $("#chat").empty();
@@ -245,17 +284,19 @@ function init() {
                 str += "[" + user + "],";
             systemSay(str);
         });
-        $("#button").click(function(event) {
+        $("#send").click(function(event) {
 
             var message = $.trim($("#input").val());
             message = message.replace(/[<>]/g, '');
             console.log(message);
-            if (message != '')
-                sendMessageToServer(message);
-            else
+            if (message != '') {
+                if (!ispchat)
+                    sendMessageToServer(message);
+                else
+                    sendMessageToPrivate(message);
+            } else
                 warningSay("message is empty!");
         });
-
         $("#logout").click(function(event) {
 
             if (islogin) {
@@ -263,7 +304,28 @@ function init() {
                 islogin = false;
             }
         });
-
+        $("#setchat").click(function(event) {
+            if (!islogin) return;
+            othername = $.trim($("#othername").val());
+            if (othername == '') {
+                ispchat = false;
+                signClose();
+                return;
+            }
+            var flag = false;
+            for (user in users) {
+                console.log(user + "===" + othername);
+                if (user == othername) {
+                    flag = true;
+                    break;
+                }
+            }
+            if (!flag) signAlert("name is not found!");
+            else {
+                ispchat = true;
+                signClose();
+            }
+        });
         $("#signin").click(function(event) {
 
             $(this).attr('data-loading-text', 'Signing');
@@ -279,14 +341,12 @@ function init() {
                 setTimeout(function() {
                     btn.button('reset');
                 }, 1000);
-            }
-            else if(username.length>20){
-            	signAlert("name is too long!");
-            	setTimeout(function(){
-            		btn.button('reset');
-            	},1000);
-            } 
-            else {
+            } else if (username.length > 20) {
+                signAlert("name is too long!");
+                setTimeout(function() {
+                    btn.button('reset');
+                }, 1000);
+            } else {
                 btn.button('reset');
                 signClose();
                 userLogIn();

@@ -5,6 +5,7 @@ var io = require('socket.io');
 var app = express();
 var online = 0;
 var users = {};
+var hash={};
 app.get('/socket.io/', function(req, res) {
 
 	var ss = io.listen(server);
@@ -16,6 +17,7 @@ app.get('/socket.io/', function(req, res) {
 				socket.name = obj.username;
 				//注册一个用户信息
 				users[obj.username] = 1;
+				hash[obj.username]=socket;
 				online++;
 				console.log(socket.name, "is login");
 				var data = {
@@ -52,7 +54,11 @@ app.get('/socket.io/', function(req, res) {
 		//发送推送
 		socket.on('news', function(message) {
 			ss.emit('news', message);
-		})
+		});
+		socket.on('private',function(obj){
+			var send=hash[obj.target];
+			send.emit('private',obj);
+		});
 	});
 
 
