@@ -40,6 +40,7 @@ app.get('/socket.io/', function(req, res) {
 			} else {
 				//删除退出用户信息
 				delete users[socket.name];
+				delete hash[socket.name];
 				online--;
 				console.log(socket.name, "is logout");
 				//通知所有用户有人退出
@@ -55,6 +56,7 @@ app.get('/socket.io/', function(req, res) {
 		socket.on('news', function(message) {
 			ss.emit('news', message);
 		});
+		//发送私聊
 		socket.on('private',function(obj){
 			var send=hash[obj.target];
 			send.emit('private',obj);
