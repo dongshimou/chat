@@ -102,11 +102,8 @@ var online = 0;
 var othername = "";
 
 function initSocket() {
-
-
-    mysocket.on('connect', function() {
-
-
+    mysocket.on('connect', function(message) {
+        systemSay(message);
     });
     mysocket.on('disconnect', function() {
         islogin = false;
@@ -118,7 +115,6 @@ function initSocket() {
         userLogOut();
     });
     mysocket.on('login', function(data) {
-
         if (username == data.NewUser)
             islogin = true;
         users = data.Users;
@@ -310,9 +306,9 @@ function init() {
                 signClose();
                 return;
             }
-            if(othername==username){
-            	signAlert("you can't send to yourself!");
-            	return;
+            if (othername == username) {
+                signAlert("you can't send to yourself!");
+                return;
             }
             var flag = false;
             for (user in users) {

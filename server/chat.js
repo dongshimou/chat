@@ -3,21 +3,28 @@ var urllib = require('url');
 var io = require('socket.io');
 
 var app = express();
+//用户数量
 var online = 0;
+//用户名是否存在
 var users = {};
-var hash={};
+//用户socket
+var hash = {};
 app.get('/socket.io/', function(req, res) {
 
 	var ss = io.listen(server);
+	var welcome = "welcome to skadi's chat room !";
+
 	ss.on('connection', function(socket) {
 		console.log("a new user");
+		//欢迎消息
+		socket.emit('news', welcome);
 		//登录信息
 		socket.on('login', function(obj) {
 			if (!users.hasOwnProperty(obj.username)) {
 				socket.name = obj.username;
 				//注册一个用户信息
 				users[obj.username] = 1;
-				hash[obj.username]=socket;
+				hash[obj.username] = socket;
 				online++;
 				console.log(socket.name, "is login");
 				var data = {
@@ -57,9 +64,9 @@ app.get('/socket.io/', function(req, res) {
 			ss.emit('news', message);
 		});
 		//发送私聊
-		socket.on('private',function(obj){
-			var send=hash[obj.target];
-			send.emit('private',obj);
+		socket.on('private', function(obj) {
+			var send = hash[obj.target];
+			send.emit('private', obj);
 		});
 	});
 
