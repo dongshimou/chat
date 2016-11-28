@@ -41,7 +41,7 @@ body {
 
 <body onload="init()">
     <!-- 菜单弹出 -->
-    <div class="modal fade" id="signinModel" tabindex="-1" role="dialog" aria-labelledby="ModalLabel" aria-hidden="true">
+    <div class="modal fade" id="loginModel" tabindex="-1" role="dialog" aria-labelledby="ModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-sm">
             <div class="modal-content">
                 <div class="modal-header">
@@ -50,7 +50,8 @@ body {
                 </div>
                 <div class="modal-body text-center">
                     <input type="text" id="name" class="form-control" placeholder="input your name" onkeyup="this.value=this.value.replace(/[^\w\d]/g,'')">
-                    <button type="" class="btn btn-success" style="margin-top: 15px;" id="signin">Sign in</button>
+                    <button class="btn btn-success" style="margin-top: 15px;" id="login">Log in</button>
+                    <button class="btn btn-danger" style="margin-top: 15px;" id="logout">Log Out</button>
                 </div>
             </div>
         </div>
@@ -74,11 +75,10 @@ body {
         <!-- class="navbar navbar-fixed-top" -->
         <div style="margin:auto 0; text-align: center;">
             <div class="nav nav-pills">
-                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#signinModel">Log In</button>
-                <button class="btn btn-danger" id="logout">Log Out</button>
+                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#loginModel">Log In</button>
                 <button class="btn btn-primary" id="alluser">AllUser</button>
                 <button type="button" class="btn btn-info" data-toggle="modal" data-target="#pchatModel">Private</button>
-                <button class="btn btn-info" id="clean">Clean</button>
+                <button class="btn btn-danger" id="clean">Clean</button>
             </div>
         </div>
     </div>
@@ -103,7 +103,7 @@ var othername = "";
 
 function initSocket() {
     mysocket.on('connect', function(message) {
-    	console.log("connect");
+        console.log("connect");
     });
     mysocket.on('disconnect', function() {
         islogin = false;
@@ -292,7 +292,10 @@ function init() {
             if (islogin) {
                 userLogOut();
                 islogin = false;
+                signClose();
                 systemSay("you are logout!");
+            } else {
+                signAlert("you are not login!")
             }
         });
         $("#setchat").click(function(event) {
@@ -324,8 +327,8 @@ function init() {
                 signClose();
             }
         });
-        $("#signin").click(function(event) {
-            $(this).attr('data-loading-text', 'Signing');
+        $("#login").click(function(event) {
+            $(this).attr('data-loading-text', 'Logging');
             var btn = $(this).button('loading');
             if (islogin) {
                 userLogOut();
