@@ -103,7 +103,7 @@ var othername = "";
 
 function initSocket() {
     mysocket.on('connect', function(message) {
-        systemSay(message);
+    	console.log("connect");
     });
     mysocket.on('disconnect', function() {
         islogin = false;
@@ -128,7 +128,7 @@ function initSocket() {
     });
     mysocket.on('news', function(message) {
         console.log("news : ", message);
-        warningSay(message);
+        systemSay(message);
     });
     mysocket.on('private', function(data) {
         fromPrivateSay(data);
