@@ -49,7 +49,7 @@ body {
                     <h5 id="ModalLabel" class="modal-title"> Set Name </h5>
                 </div>
                 <div class="modal-body text-center">
-                    <input type="text" id="name" class="form-control" onkeyup="this.value=this.value.replace(/[^\w\d]/g,'')">
+                    <input type="text" id="name" class="form-control" placeholder="input your name" onkeyup="this.value=this.value.replace(/[^\w\d]/g,'')">
                     <button type="" class="btn btn-success" style="margin-top: 15px;" id="signin">Sign in</button>
                 </div>
             </div>
@@ -60,10 +60,10 @@ body {
             <div class="modal-content">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
-                    <h5 id="PrivateLabel" class="modal-title"> Private </h5>
+                    <h5 id="PrivateLabel" class="modal-title"> Side-Text </h5>
                 </div>
                 <div class="modal-body text-center">
-                    <input type="text" id="othername" class="form-control" onkeyup="this.value=this.value.replace(/[^\w\d]/g,'')">
+                    <input type="text" id="othername" class="form-control" placeholder="input other's name" onkeyup="this.value=this.value.replace(/[^\w\d]/g,'')">
                     <button type="" class="btn btn-success" style="margin-top: 15px;" id="setchat">Set Chat</button>
                 </div>
             </div>
@@ -166,32 +166,24 @@ function initYourName(name) {
 
 function sendMessageToServer(message) {
 
-    if (islogin) {
-        var data = {
-            username: username,
-            message: message
-        };
-        mysocket.send(data);
-        iSay(data);
-        $("#input").val('');
-    } else {
-        warningSay("please login first!");
-    }
+    var data = {
+        username: username,
+        message: message
+    };
+    mysocket.send(data);
+    iSay(data);
+    $("#input").val('');
 }
 
 function sendMessageToPrivate(message) {
-    if (islogin) {
-        var data = {
-            origin: username,
-            target: othername,
-            message: message
-        };
-        mysocket.emit('private', data);
-        privateSayTo(data);
-        $("#input").val('');
-    } else {
-        warningSay("please login first!");
-    }
+    var data = {
+        origin: username,
+        target: othername,
+        message: message
+    };
+    mysocket.emit('private', data);
+    privateSayTo(data);
+    $("#input").val('');
 }
 
 function addUser(name) {
@@ -227,13 +219,13 @@ function iSay(data) {
 }
 
 function privateSayTo(data) {
-    var newrow = '<div class="row"><div class="row"><h4 class="bubble bubble--alt message">' + data.message + '</h4></div><div class="row"><h5 class="right-name">' + 'i say to ' + data.target + '</h5></div></div>';
+    var newrow = '<div class="row"><div class="row"><h4 class="bubble bubble--alt message">' + data.message + '</h4></div><div class="row"><h5 class="right-name">' + 'i say to [' + data.target + ']</h5></div></div>';
     $("#chat").append(newrow);
     fixScroll();
 }
 
 function fromPrivateSay(data) {
-    var newrow = '<div class="row"><div class="row"><h4 class="bubble message">' + data.message + '</h4></div><div class="row"><h5 class="left-name">' + data.origin + ' say to you' + '</h5></div></div>';
+    var newrow = '<div class="row"><div class="row"><h4 class="bubble message">' + data.message + '</h4></div><div class="row"><h5 class="left-name">[' + data.origin + '] say to you' + '</h5></div></div>';
     $("#chat").append(newrow);
     fixScroll();
 }
@@ -248,9 +240,8 @@ function signAlert(message) {
     setTimeout(function() {
         $(".modal-body h4 ").hide('500', function() {
             $(this).remove();
-            flag = false;
         });
-    }, 3000);
+    }, 4000);
 }
 
 function signClose() {
@@ -265,9 +256,7 @@ function setChatBox() {
 }
 
 function init() {
-
     $(document).ready(function() {
-
         setChatBox();
         $(document).keypress(function(event) {
             if (event.ctrlKey && event.which == 13)
@@ -277,7 +266,10 @@ function init() {
             $("#chat").empty();
         });
         $("#alluser").click(function(event) {
-            if (!islogin) return;
+            if (!islogin) {
+                warningSay("please login first!");
+                return;
+            }
             systemSay("Online User Count =" + online + " :");
             var str = "";
             for (user in users)
@@ -285,32 +277,42 @@ function init() {
             systemSay(str);
         });
         $("#send").click(function(event) {
-
             var message = $.trim($("#input").val());
             message = message.replace(/[<>]/g, '');
             console.log(message);
             if (message != '') {
-                if (!ispchat)
-                    sendMessageToServer(message);
-                else
-                    sendMessageToPrivate(message);
+                if (!islogin) {
+                    warningSay("please login first!");
+                } else {
+                    if (!ispchat)
+                        sendMessageToServer(message);
+                    else
+                        sendMessageToPrivate(message);
+                }
             } else
                 warningSay("message is empty!");
         });
         $("#logout").click(function(event) {
-
             if (islogin) {
                 userLogOut();
                 islogin = false;
+                systemSay("you are logout!");
             }
         });
         $("#setchat").click(function(event) {
-            if (!islogin) return;
+            if (!islogin) {
+                signAlert("you are not login!");
+                return;
+            }
             othername = $.trim($("#othername").val());
             if (othername == '') {
                 ispchat = false;
                 signClose();
                 return;
+            }
+            if(othername==username){
+            	signAlert("you can't send to yourself!");
+            	return;
             }
             var flag = false;
             for (user in users) {
@@ -327,7 +329,6 @@ function init() {
             }
         });
         $("#signin").click(function(event) {
-
             $(this).attr('data-loading-text', 'Signing');
             var btn = $(this).button('loading');
             if (islogin) {
