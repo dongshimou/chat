@@ -14,6 +14,9 @@ support more menu option
 
 support person to person chat
 
+###---add private chat room support ---
+branch : dev
+
 #---- update 2016/11/25 ----
  fixed the server bug about private chat
  

@@ -79,6 +79,9 @@ body {
                 <button class="btn btn-primary" id="alluser">AllUser</button>
                 <button type="button" class="btn btn-info" data-toggle="modal" data-target="#pchatModel">Private</button>
                 <button class="btn btn-danger" id="clean">Clean</button>
+                <button class="btn btn-primary" id="invite">invite</button>
+                <button class="btn btn-primary" id="join">join</button>
+                <button class="btn btn-primary" id="leave">leave</button>
             </div>
         </div>
     </div>
@@ -100,6 +103,7 @@ var ispchat = false;
 var users = {};
 var online = 0;
 var othername = "";
+var invite = null;
 
 function initSocket() {
     mysocket.on('connect', function(message) {
@@ -139,11 +143,15 @@ function initSocket() {
         online--;
         delUser(name);
     });
+    mysocket.on('join', function(obj) {
+        console.log("join :" + obj.room);
+        invite = obj;
+    });
 }
 
 function userLogIn() {
-    mysocket = io('ws://www.skadi.online:2333');
-    mysocket.connect();
+    mysocket = io('ws://127.0.0.1:2333');
+    //mysocket.connect();
     initYourName(username);
     console.log("login");
 }
@@ -158,6 +166,24 @@ function initYourName(name) {
         username: name
     }
     mysocket.emit('login', data);
+}
+
+function invatePerson(name) {
+    var data = {
+        target: name,
+        origin: username
+    };
+    mysocket.emit('invite', data);
+}
+
+function joinRoom(data) {
+    console.log(data.origin + data.target + data.room);
+    mysocket.emit('join', data);
+}
+
+function leaveRoom() {
+    console.log("leave");
+    mysocket.emit('leave');
 }
 
 function sendMessageToServer(message) {
@@ -353,6 +379,19 @@ function init() {
                 initSocket();
             }
         });
+        $("#invite").click(function(event) {
+        	othername = $.trim($("#othername").val());
+        	console.log("invite ",othername);
+        	invatePerson(othername);
+        });
+        $("#join").click(function(event) {
+        	console.log("join room");
+        	joinRoom(invite);
+        });
+        $("#leave").click(function(event) {
+        	console.log("leave room");
+        	leaveRoom();
+       	});
     });
 }
 </script>
