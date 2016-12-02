@@ -1,7 +1,7 @@
 var express = require('express');
 var urllib = require('url');
 var io = require('socket.io');
-
+var fs = require('fs');
 var app = express();
 //用户数量
 var online = 0;
@@ -11,8 +11,18 @@ var users = {};
 var hash = {};
 //单独房间
 var rooms = {};
-app.get('/socket.io/', function(req, res) {
+var date = new Date();
+var filepath = date.toLocaleDateString() + ".log";
 
+function logchat(filepath, data) {
+	data += '\r\n';
+	fs.appendFile(filepath, data, function(err) {
+		if (err) {
+			console.log("log error");
+		};
+	});
+}
+app.get('/socket.io/', function(req, res) {
 	var ss = io.listen(server);
 	var welcome = "welcome to skadi's chat room !";
 	var hall = "skadi";
@@ -29,7 +39,8 @@ app.get('/socket.io/', function(req, res) {
 				hash[obj.username] = socket;
 				rooms[obj.username] = hall;
 				online++;
-				console.log(socket.name, "is login");
+				console.log(socket.name, " is logging in!");
+				logchat(filepath, socket.name + " is logging in!");
 				var data = {
 					Users: users,
 					Online: online,
@@ -54,7 +65,8 @@ app.get('/socket.io/', function(req, res) {
 				delete hash[socket.name];
 				delete rooms[socket.name];
 				online--;
-				console.log(socket.name, "is logout");
+				console.log(socket.name, " is logout!");
+				logchat(filepath, socket.name + " is logout!");
 				//通知所有用户有人退出
 				ss.emit('logout', socket.name);
 			}
@@ -64,6 +76,7 @@ app.get('/socket.io/', function(req, res) {
 			if (rooms.hasOwnProperty(obj.username)) {
 				var room = rooms[obj.username];
 				socket.to(room).emit('message', obj);
+				logchat(filepath, socket.name + " say to room[" + room + "] :" + obj.message);
 			} else {
 				ss.emit('message', obj);
 			}
@@ -77,6 +90,8 @@ app.get('/socket.io/', function(req, res) {
 		socket.on('private', function(obj) {
 			var send = hash[obj.target];
 			send.emit('private', obj);
+			logchat(filepath, socket.name + " say to " + obj.target + " :" +
+				obj.message);
 		});
 		//邀请加入房间
 		socket.on('invite', function(obj) {
@@ -123,5 +138,7 @@ app.get('/socket.io/', function(req, res) {
 });
 
 var server = app.listen(2333, function() {
-	console.log("start");
+	console.log("==========server start==========");
+	logchat(filepath, "==========server start==========");
+	logchat(filepath, "log time : " + date.toLocaleDateString());
 });
