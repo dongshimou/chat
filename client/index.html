@@ -279,7 +279,10 @@ function setChatBox() {
 
 function init() {
     $(document).ready(function() {
-        setChatBox();
+    	setChatBox();
+        $(window).resize(function(event) {
+            setChatBox();
+        });
         $(document).keypress(function(event) {
             if (event.ctrlKey && event.which == 13)
                 $("#send").click();
@@ -380,18 +383,18 @@ function init() {
             }
         });
         $("#invite").click(function(event) {
-        	othername = $.trim($("#othername").val());
-        	console.log("invite ",othername);
-        	invatePerson(othername);
+            othername = $.trim($("#othername").val());
+            console.log("invite ", othername);
+            invatePerson(othername);
         });
         $("#join").click(function(event) {
-        	console.log("join room");
-        	joinRoom(invite);
+            console.log("join room");
+            joinRoom(invite);
         });
         $("#leave").click(function(event) {
-        	console.log("leave room");
-        	leaveRoom();
-       	});
+            console.log("leave room");
+            leaveRoom();
+        });
     });
 }
 </script>
